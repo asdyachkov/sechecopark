@@ -2,6 +2,7 @@ import datetime
 import random
 
 import psycopg2
+import pytz
 from aiogram import types
 from aiogram.dispatcher.filters import Command
 from aiogram.dispatcher.storage import FSMContext
@@ -174,11 +175,13 @@ async def vafhbvah(message: types.Message, state: FSMContext):
     if message.text != 'Время уже занято':
         if message.text.isdigit() and kolvo_dney(answer1, answer2):
             await state.update_data(answer2=date)
-            now = datetime.datetime.now()
-            if month_list[int(str(now)[5:7]) - 1] == answer1[1:-1] and int(message.text) < int(str(now)[8:10]):
+            tz_Moscow = pytz.timezone('europe/moscow')
+            datetime_Moscow = datetime.datetime.now(tz_Moscow)
+            now = str(datetime_Moscow.strftime("%D"))
+            if month_list[int(str(now)[0:2]) - 1] == answer1[1:-1] and int(message.text) < int(str(now)[3:5]):
                 await message.answer('Кажется, этот день уже прошел.\n'
                                      'Выберите другой')
-            elif month_list[int(str(now)[5:7]) - 1] == answer1[1:-1] and int(message.text) == int(str(now)[8:10]):
+            elif month_list[int(str(now)[0:2]) - 1] == answer1[1:-1] and int(message.text) == int(str(now)[3:5]):
                 await message.answer('На сегодня записаться не получится.\n'
                                      'Мы не уcпеем подготовить лошадку.\n'
                                      'Выберите, пожалуйста, другой день.')
