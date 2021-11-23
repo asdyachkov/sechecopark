@@ -40,29 +40,48 @@ keyb2 = ReplyKeyboardMarkup(
 keyb0 = ReplyKeyboardMarkup(
     keyboard=[
         [
-            KeyboardButton(text='Зарегестрироваться на посещение')
+            KeyboardButton(text='Зарегестрироваться на посещение'), KeyboardButton(text='Отменить запись')
         ]
-    ]
+    ],
+    resize_keyboard=True
 )
 keyb1 = ReplyKeyboardMarkup(
     keyboard=[
         [
             KeyboardButton(text='Выбрать другой месяц')
         ]
-    ]
+    ],
+    resize_keyboard=True
 )
 keyb3 = ReplyKeyboardMarkup(
     keyboard=[
         [
             KeyboardButton(text='Выбрать другое время')
         ]
-    ]
+    ],
+    resize_keyboard=True
 )
 keyb4 = ReplyKeyboardMarkup(
     keyboard=[
         [
             KeyboardButton(text='Создать запись'), KeyboardButton(text='Изменить комментарий')
         ],
+    ],
+    resize_keyboard=True
+)
+keyb5 = ReplyKeyboardMarkup(
+    keyboard=[
+        [
+            KeyboardButton(text='Назад')
+        ]
+    ],
+    resize_keyboard=True
+)
+keyb6 = ReplyKeyboardMarkup(
+    keyboard=[
+        [
+            KeyboardButton(text='Отменить запись'), KeyboardButton(text='Назад')
+        ]
     ],
     resize_keyboard=True
 )

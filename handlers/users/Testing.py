@@ -1,4 +1,5 @@
 import datetime
+import random
 
 import psycopg2
 from aiogram import types
@@ -7,7 +8,7 @@ from aiogram.dispatcher.storage import FSMContext
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 
 from data.config import DB_URI
-from keyboards.default import keyb0, keyb2, keyb1, keyb3, keyb4
+from keyboards.default import keyb0, keyb2, keyb1, keyb3, keyb4, keyb5, keyb6
 from loader import dp, bot
 from states import Test
 
@@ -62,8 +63,68 @@ def kolvo_dney(answer1, answer2):
 async def start_message(message: types.Message):
     await message.answer('Здравствуйте!\n'
                          'Данная программа предназначена для записи на занятия верховой ездой.\n'
-                         'Нажмите на кнопку ниже, чтобы записаться.',
+                         'Нажмите на кнопку ниже, чтобы записаться или отменить уже сделанную запись.',
                          reply_markup=keyb0)
+
+
+@dp.message_handler(Command('cancel'))
+async def otmenabq(message: types.Message):
+    await message.answer('Для отмены записи, введите шестизначный код',
+                         reply_markup=keyb5)
+    await Test.Q6.set()
+
+
+@dp.message_handler(text='Отменить запись')
+async def otmena(message: types.Message):
+    await message.answer('Для отмены записи, введите шестизначный код',
+                         reply_markup=keyb5)
+    await Test.Q6.set()
+
+
+@dp.message_handler(state=Test.Q6, text='Назад')
+async def start_message(message: types.Message, state: FSMContext):
+    await message.answer('Данная программа предназначена для записи на занятия верховой ездой.\n'
+                         'Нажмите на кнопку ниже, чтобы записаться или отменить уже сделанную запись.',
+                         reply_markup=keyb0)
+    await state.finish()
+
+
+@dp.message_handler(state=Test.Q6)
+async def kod(message: types.Message, state: FSMContext):
+    if len(message.text) == 6 and message.text.isdigit():
+        password = "'" + message.text + "'"
+        cursor.execute(f"SELECT month, date, time FROM Записи WHERE password = {password}")
+        data = cursor.fetchone()
+        if data is not None:
+            await state.update_data(password=password)
+            await message.answer(f'Вы действительно хотите отменить запись на:\n'
+                                 f'{data[0]} , {data[1]}'
+                                 f' число, {data[2]} часов?',
+                                 reply_markup=keyb6)
+            await Test.Q7.set()
+        else:
+            await message.answer('Такого кода не найдено.\n'
+                                 'Попробуйте другой.')
+    else:
+        await message.answer('Требуется ввести шестизначное число')
+
+
+@dp.message_handler(state=Test.Q7, text='Отменить запись')
+async def kod666(message: types.Message, state: FSMContext):
+    data = await state.get_data()
+    password = data.get('password')
+    cursor.execute(f"DELETE FROM Записи WHERE password = {password}")
+    connect.commit()
+    await message.answer('Запись отменена.',
+                         reply_markup=keyb0)
+    await state.finish()
+
+
+@dp.message_handler(state=Test.Q7, text='Назад')
+async def back(message: types.Message):
+    await message.answer('Для отмены записи, введите шестизначный код',
+                         reply_markup=keyb5)
+    await Test.Q6.set()
 
 
 @dp.message_handler(text='Зарегестрироваться на посещение')
@@ -281,12 +342,23 @@ async def answer_q99(message: types.Message, state: FSMContext):
     answer1 = data.get('answer1')
     answer2 = data.get('answer2')
     answer3 = data.get('answer3')
-    cursor.execute(f"INSERT INTO Записи VALUES(%s, %s, %s)", (answer1[1:-1], answer2[1:-1], answer3))
+    password = random.randint(100000, 999999)
+    data = []
+    cursor.execute("SELECT DISTINCT password FROM Записи;")
+    ata = cursor.fetchall()
+    if ata is not None:
+        for i in ata:
+            data.append(int(str(i)[1:-2]))
+        while password in data:
+            password = random.randint(100000, 999999)
+    cursor.execute(f"INSERT INTO Записи VALUES(%s, %s, %s, %s)", (answer1[1:-1], answer2[1:-1], answer3, password))
     connect.commit()
     await message.answer("Спасибо, регистрация завершена.\n"
                          "С нетерпением ждем встречи!\n"
-                         "Если Вы захотите отменить запись, то свяжитесь с нами через инстаграм.",
-                         reply_markup=types.ReplyKeyboardRemove())
+                         "Для удобства копирования, Ваш код отмены будет отправлен следующим сообщением:",
+                         reply_markup=keyb0)
+    await message.answer(f'{password}')
+    await message.answer('Для того, чтобы отменить запись, напишите /cancel')
     await state.finish()
     await bot.send_message(chat_id='961406924',
                            text=f'Новая запись на {answer1[1:-1]}, {answer2[1:-1]} число, {answer3} часов.\n'
