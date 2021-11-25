@@ -8,7 +8,7 @@ from aiogram.dispatcher.filters import Command
 from aiogram.dispatcher.storage import FSMContext
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 
-from data.config import DB_URI
+from data.config import DB_URI, ADMINS
 from keyboards.default import keyb0, keyb2, keyb1, keyb3, keyb4, keyb5, keyb6
 from loader import dp, bot
 from states import Test
@@ -114,10 +114,54 @@ async def kod(message: types.Message, state: FSMContext):
 async def kod666(message: types.Message, state: FSMContext):
     data = await state.get_data()
     password = data.get('password')
+    cursor.execute(f"SELECT visitor_id FROM Записи WHERE password = {password}")
+    table_id = cursor.fetchone()
+    cursor.execute(f"SELECT month, date, time FROM Записи WHERE password = {password}")
+    data = cursor.fetchone()
+    if str(message.chat.id) == str(table_id[0]):
+        cursor.execute(f"DELETE FROM Записи WHERE password = {password}")
+        connect.commit()
+        await message.answer('Запись отменена.',
+                             reply_markup=types.ReplyKeyboardRemove())
+        for i in ADMINS:
+            await bot.send_message(i,
+                                   f'Отмененна запись на {data[0]} , {data[1]}'
+                                   f' число, {data[2]} часов.')
+        await state.finish()
+    else:
+        await message.answer('Я заметил, что Вы удаляете не свою запись.\n'
+                             'Введите причину удаления записи\n'
+                             'Введенный Вами текст будет отправлен записаному посетителю как причина отмена записи.\n'
+                             'Например, "Нет номера телефона"/"Не указан вес посетителя" и т.п.',
+                             reply_markup=keyb5)
+        await Test.Q8.set()
+
+
+@dp.message_handler(state=Test.Q8, text='Назад')
+async def delete(message: types.Message):
+    await message.answer('Для отмены записи, введите шестизначный код')
+    await Test.Q6.set()
+
+
+@dp.message_handler(state=Test.Q8)
+async def delete(message: types.Message, state: FSMContext):
+    data = await state.get_data()
+    password = str(data.get('password'))[1:-1]
+    cursor.execute(f"SELECT visitor_id FROM Записи WHERE password = {password}")
+    table_id = cursor.fetchone()[0]
+    cursor.execute(f"SELECT month FROM Записи WHERE password = {password}")
+    answer1 = cursor.fetchone()[0]
+    cursor.execute(f"SELECT date FROM Записи WHERE password = {password}")
+    answer2 = cursor.fetchone()[0]
+    cursor.execute(f"SELECT time FROM Записи WHERE password = {password}")
+    answer3 = cursor.fetchone()[0]
     cursor.execute(f"DELETE FROM Записи WHERE password = {password}")
     connect.commit()
-    await message.answer('Запись отменена.',
-                         reply_markup=keyb0)
+    await bot.send_message(table_id,
+                           f'Ваша запись на {answer1}, {answer2} число, {answer3} отменена.\n'
+                           f'Причина отмены: {message.text}',
+                           reply_markup=types.ReplyKeyboardRemove())
+    await message.answer('Запись была удалена, комментарий посетителю был отправлен.')
     await state.finish()
 
 
@@ -346,6 +390,7 @@ async def answer_q99(message: types.Message, state: FSMContext):
     answer2 = data.get('answer2')
     answer3 = data.get('answer3')
     password = random.randint(100000, 999999)
+    visitor_id = message.chat.id
     data = []
     cursor.execute("SELECT DISTINCT password FROM Записи;")
     ata = cursor.fetchall()
@@ -354,7 +399,8 @@ async def answer_q99(message: types.Message, state: FSMContext):
             data.append(int(str(i)[1:-2]))
         while password in data:
             password = random.randint(100000, 999999)
-    cursor.execute(f"INSERT INTO Записи VALUES(%s, %s, %s, %s)", (answer1[1:-1], answer2[1:-1], answer3, password))
+    cursor.execute(f"INSERT INTO Записи VALUES(%s, %s, %s, %s, %s)",
+                   (answer1[1:-1], answer2[1:-1], answer3, password, visitor_id))
     connect.commit()
     await message.answer("Спасибо, регистрация завершена.\n"
                          "С нетерпением ждем встречи!\n"
@@ -365,10 +411,12 @@ async def answer_q99(message: types.Message, state: FSMContext):
     await state.finish()
     await bot.send_message(chat_id='961406924',
                            text=f'Новая запись на {answer1[1:-1]}, {answer2[1:-1]} число, {answer3} часов.\n'
-                                f'Комментарий посетителя: {answer}')
+                                f'Комментарий посетителя: {answer}\n'
+                                f'Пароль для отмены этой записи:{visitor_id}')
     await bot.send_message(chat_id='518091887',
                            text=f'Новая запись на {answer1[1:-1]}, {answer2[1:-1]} число, {answer3} часов.\n'
-                                f'Комментарий посетителя: {answer}')
+                                f'Комментарий посетителя: {answer}\n'
+                                f'Пароль для отмены этой записи:{visitor_id}')
 
 
 @dp.message_handler()
