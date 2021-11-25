@@ -416,7 +416,7 @@ async def answer_q99(message: types.Message, state: FSMContext):
     await bot.send_message(chat_id='518091887',
                            text=f'Новая запись на {answer1[1:-1]}, {answer2[1:-1]} число, {answer3} часов.\n'
                                 f'Комментарий посетителя: {answer}\n'
-                                f'Пароль для отмены этой записи:{visitor_id}')
+                                f'Пароль для отмены этой записи:{password}')
 
 
 @dp.message_handler()
