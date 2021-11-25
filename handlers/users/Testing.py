@@ -115,10 +115,10 @@ async def kod666(message: types.Message, state: FSMContext):
     data = await state.get_data()
     password = data.get('password')
     cursor.execute(f"SELECT visitor_id FROM Записи WHERE password = {password}")
-    table_id = cursor.fetchone()
+    table_id = str(cursor.fetchone()[0])
     cursor.execute(f"SELECT month, date, time FROM Записи WHERE password = {password}")
     data = cursor.fetchone()
-    if str(message.chat.id) == str(table_id[0]):
+    if str(message.chat.id) not in ADMINS or str(message.chat.id) == table_id:
         cursor.execute(f"DELETE FROM Записи WHERE password = {password}")
         connect.commit()
         await message.answer('Запись отменена.',
@@ -128,11 +128,11 @@ async def kod666(message: types.Message, state: FSMContext):
                                    f'Отмененна запись на {data[0]} , {data[1]}'
                                    f' число, {data[2]} часов.')
         await state.finish()
-    else:
-        await message.answer('Я заметил, что Вы удаляете не свою запись.\n'
-                             'Введите причину удаления записи\n'
-                             'Введенный Вами текст будет отправлен записаному посетителю как причина отмена записи.\n'
-                             'Например, "Нет номера телефона"/"Не указан вес посетителя" и т.п.',
+    elif str(message.chat.id) in ADMINS:
+        await message.answer('Я заметил, что Вы админчик (типо крутой).\n'
+                             'Введите причину удаления записи.\n'
+                             'Например, "Нет номера телефона"/"Не указан вес посетителя" и т.п.\n'
+                             'Введенный Вами текст будет отправлен записаному посетителю как причина отмена записи.',
                              reply_markup=keyb5)
         await Test.Q8.set()
 
