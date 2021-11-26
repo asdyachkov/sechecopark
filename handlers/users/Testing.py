@@ -135,6 +135,11 @@ async def kod666(message: types.Message, state: FSMContext):
                              'Введенный Вами текст будет отправлен записаному посетителю как причина отмена записи.',
                              reply_markup=keyb5)
         await Test.Q8.set()
+    else:
+        await message.answer('Почему-то мне кажется, что Вы уддаляете не свою запись.\n'
+                             'Так делать нельзя.\n'
+                             'Чтобы ввести другой код, нажмите на кнопку "Назад"',
+                             reply_markup=keyb5)
 
 
 @dp.message_handler(state=Test.Q8, text='Назад')
