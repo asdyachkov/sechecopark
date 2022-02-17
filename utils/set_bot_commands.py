@@ -7,8 +7,3 @@ async def set_default_commands(dp):
             types.BotCommand("start", "Запустить бота")
         ]
     )
-    await dp.bot.set_my_commands(
-        [
-            types.BotCommand("cancel", "Отменить запись")
-        ]
-    )
